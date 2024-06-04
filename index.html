@@ -1,0 +1,377 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #score-counter {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+            background-color: #333;
+            border-bottom-right-radius: 10px;
+            color: white;
+            z-index: 999;
+        }
+
+        #quiz-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 60px 20px 20px; /* تم تعديل ال padding ليضمن عدم تغطية الصورة */
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            position: relative; /* تمت إضافة position: relative; للسماح لـ #score-counter بالتحكم فيه */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: white;
+            background-color: #2196F3;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #2196F3;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0c0c0c;
+        }
+
+        #timer {
+            margin-bottom: 10px;
+        }
+
+        #result-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-text {
+            margin-bottom: 10px;
+        }
+
+        .correct {
+            background-color: green;
+            color: white;
+        }
+
+        .incorrect {
+            background-color: red;
+            color: white;
+        }
+
+        /* CSS for displaying images to fit the screen */
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="score-counter">Score: <span id="score">0</span></div>
+
+    <div id="quiz-container">
+        <img id="question-image" src="" alt="Question Image">
+        <div id="choices"></div>
+        <button onclick="checkAnswer()">Submit Answer</button>
+        <p id="timer"></p>
+    </div>
+
+    <div id="result-container">
+        <h2>Quiz Result</h2>
+        <p class="result-text" id="result"></p>
+        <div id="correct-answers"></div>
+        <button id="retryBtn" style="display: none;" onclick="retryQuiz()">Retry Quiz</button>
+    </div>
+
+    <script>
+        var currentQuestion = 0;
+        var score = 0;
+        var timeLeft = 1000; // تحديد عدد الثواني
+        var timerInterval;
+
+        var quizData = [
+  {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/7078e855-adf2-42f4-aa21-f42a62ea5c58",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "D"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/029a8cac-a902-4393-a982-1fe8da959c69",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "C"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/575131c5-3cc3-4c85-8e42-1dcfd6e3bd5e",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "C"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/c120c86a-8c71-4ea3-97be-548a1188adf0",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "D"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/f9b781d8-7284-4422-9df8-cb55780d3667",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "A"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/dc5c6a09-513e-4155-8ae2-705de1029a35",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "A"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/c2130e4f-437a-4669-b8fb-fc7840e0042d",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "C"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/f3a3b913-d869-4c0b-959d-bf876abefe06",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "B"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/6a23adfb-6bc1-49d3-8f0d-bef500f04775",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "B"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/59dbf998-7142-428e-b0aa-11fc6b0c31af",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "B"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/171ddaa7-080d-4162-9671-5b2f9dfb8647",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "B"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/130290ab-1323-487b-b2d4-a6e70dcadda5",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "C"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/f17625b6-06ca-410f-84b6-2a111b33d7fb",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "C"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/3a1bbe69-f0fc-4c29-8674-93a070ba8308",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "D"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/f8635a21-806e-4b4a-bda0-8f36a7387df8",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "C"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/8cab98e3-4959-49ce-bf30-e38bd1e0ec7d",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "B"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/dab40b99-c02a-43c4-883a-abb4354e6237",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "B"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/0436fe36-80f5-4e3f-adcb-3d3e5c8b85c7",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "D"
+            },
+
+              {
+                "imageSrc": "https://lists.office.com/Images/9188040d-6c67-4c5b-b112-36a304b66dad/00000000-0000-0000-0006-bffd20b2d784/T6WPMOMCJUD8H6V3SWL9VFPQDL/143a347c-c2d0-4c25-9b47-55993dd6ff30",
+                "choices": ["A", "B","C","D"],
+                "correctAnswer": "A"
+            },
+
+            
+        ];
+
+        // قم بترتيب الأسئلة بشكل عشوائي
+        shuffleArray(quizData);
+
+        function shuffleArray(array) {
+            for (var i = array.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+            return array;
+        }
+
+        function loadQuestion() {
+            var currentQuiz = quizData[currentQuestion];
+
+            var questionImageElement = document.getElementById('question-image');
+            var choicesElement = document.getElementById('choices');
+
+            if (currentQuiz.imageSrc) {
+                questionImageElement.src = currentQuiz.imageSrc; // تعيين مصدر الصورة
+                questionImageElement.style.display = 'block'; // عرض الصورة
+            } else {
+                questionImageElement.style.display = 'none'; // إخفاء الصورة إذا لم تكن متاحة
+            }
+
+            choicesElement.innerHTML = '';
+
+            // عرض السؤال كنص عادي إذا لم يكن هناك صورة
+            if (!currentQuiz.imageSrc) {
+                choicesElement.innerHTML += '<p>' + currentQuiz.question + '</p>';
+            }
+
+            for (var i = 0; i < currentQuiz.choices.length; i++) {
+                var choice = currentQuiz.choices[i];
+                choicesElement.innerHTML += '<label><input type="radio" name="choice" value="' + choice + '"> ' + choice + '</label>';
+            }
+
+            startTimer(); // بدء الموقت عند تحميل كل سؤال
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(function () {
+                document.getElementById('timer').innerHTML = 'Time Left: ' + timeLeft + 's';
+
+                if (timeLeft === 0) {
+                    clearInterval(timerInterval);
+                    alert('Time is up!'); // عرض رسالة انتهاء الوقت
+                    showResult(); // عرض النتيجة النهائية عند انتهاء الوقت
+                } else {
+                    timeLeft--;
+                }
+            }, 1000);
+        }
+
+        function checkAnswer() {
+            var selectedOption = document.querySelector('input[name="choice"]:checked');
+            if (!selectedOption) {
+                alert('Please select an answer.');
+                return;
+            }
+
+            var userAnswer = selectedOption.value;
+            var currentQuiz = quizData[currentQuestion];
+
+            var choicesLabels = document.querySelectorAll('label');
+
+            for (var i = 0; i < choicesLabels.length; i++) {
+                if (currentQuiz.correctAnswer === currentQuiz.choices[i]) {
+                    choicesLabels[i].classList.add('correct');
+                } else {
+                    choicesLabels[i].classList.add('incorrect');
+                }
+            }
+
+            if (userAnswer === currentQuiz.correctAnswer) {
+                score++;
+                document.getElementById('score').textContent = score;
+            }
+
+            clearInterval(timerInterval); // قبل التحقق من الإجابة، قم بإيقاف الموقت
+
+            currentQuestion++;
+
+            if (currentQuestion < quizData.length) {
+                setTimeout(function () {
+                    loadQuestion();
+                    resetColors();
+                }, 3000);
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            var resultElement = document.getElementById('result');
+            var correctAnswersElement = document.getElementById('correct-answers');
+
+            resultElement.innerHTML = 'Your Score: ' + score + ' out of ' + quizData.length;
+
+            correctAnswersElement.innerHTML = '<h3>Correct Answers:</h3>';
+            for (var i = 0; i < quizData.length; i++) {
+                var q = quizData[i];
+                var imgSrc = q.imageSrc;
+                var imgElement = '<img src="' + imgSrc + '" alt="Question Image">';
+                correctAnswersElement.innerHTML += imgElement + '<strong>Q: ' + q.question + '</strong><br>A: ' + q.correctAnswer + '<br>';
+            }
+
+            document.getElementById('result-container').style.display = 'block';
+            document.getElementById('retryBtn').style.display = 'block';
+        }
+
+        function resetColors() {
+            var choicesLabels = document.querySelectorAll('label');
+            for (var i = 0; i < choicesLabels.length; i++) {
+                choicesLabels[i].classList.remove('correct', 'incorrect'); // إزالة الأنماط المضافة سابقًا
+            }
+        }
+
+        function retryQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            timeLeft = 800; // إعادة تعيين الوقت للقيمة الأصلية
+
+            // قم بترتيب الأسئلة بشكل عشوائي عند إعادة المحاولة
+            shuffleArray(quizData);
+
+            document.getElementById('score').textContent = score; // تحديث قيمة العداد إلى الصفر
+            loadQuestion();
+            resetColors();
+
+            document.getElementById('result-container').style.display = 'none';
+            document.getElementById('retryBtn').style.display = 'none';
+        }
+
+        loadQuestion();
+    </script>
+
+</body>
+
+</html>
